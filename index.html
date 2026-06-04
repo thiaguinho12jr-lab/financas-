@@ -406,7 +406,7 @@ function changeMonth(d){cur=new Date(cur.getFullYear(),cur.getMonth()+d,1);rende
 // ---------- RENDER ----------
 function render(){
   $('monthLbl').textContent=`${MESES[cur.getMonth()]} ${cur.getFullYear()}`;
-  renderDash(); renderProjecao(); renderLanc(); renderCartoes(); renderReceber(); renderEmprestimos(); renderPlanos();
+  renderDash(); renderProjecao(); renderLanc(); renderCartoes(); renderReceber(); renderEmprestimos(); renderPlanos(); renderSugestoes();
 }
 
 // ---------- PROJEÇÃO ----------
