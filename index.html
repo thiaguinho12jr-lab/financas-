@@ -417,37 +417,77 @@ function dividaTotalAtual(){
   return state.cartoes.reduce((s,c)=>s+ +c.saldo_devedor,0)
        + state.emprestimos.reduce((s,e)=>s+Math.max(0,e.parcelas_total-e.parcelas_pagas)*+e.parcela_valor,0);
 }
+let _projFiltro='todos';
+function projFiltro(f){
+  _projFiltro=f;
+  ['fAll','fDef','fSup'].forEach(id=>$(id)&&$(id).classList.remove('on'));
+  const map={todos:'fAll',deficit:'fDef',superavit:'fSup'};
+  if($(map[f]))$(map[f]).classList.add('on');
+  renderProjecao();
+}
 function renderProjecao(){
-  // total de despesas pendentes nos meses do calendário
   const base=new Date(); base.setDate(1);
   let totFuturo=0, totReceber=0;
+  const mesesData=[];
   for(let i=0;i<calMeses;i++){
-    const comp=compStr(new Date(base.getFullYear(),base.getMonth()+i,1));
-    totFuturo+=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='despesa').reduce((s,l)=>s+ +l.valor,0);
-    totReceber+=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='receita').reduce((s,l)=>s+ +l.valor,0);
+    const d=new Date(base.getFullYear(),base.getMonth()+i,1);
+    const comp=compStr(d);
+    const pagar=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='despesa').reduce((s,l)=>s+ +l.valor,0);
+    const receber=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='receita').reduce((s,l)=>s+ +l.valor,0);
+    totFuturo+=pagar; totReceber+=receber;
+    mesesData.push({d,comp,pagar,receber,saldo:receber-pagar,isNow:i===0});
   }
   $('projKpis').innerHTML=`
     ${kpi('red','💸','Despesas previstas',brl(totFuturo),'próximos '+calMeses+' meses')}
     ${kpi('green','💰','Entradas previstas',brl(totReceber),'próximos '+calMeses+' meses')}
     ${kpi(totReceber-totFuturo>=0?'green':'yellow','⚖️','Saldo previsto',brl(totReceber-totFuturo),'no período')}`;
 
-  // calendário de meses
+  // mini gráfico de barras
+  const maxVal=Math.max(1,...mesesData.map(m=>Math.max(m.pagar,m.receber)));
+  const barsHtml=mesesData.slice(0,calMeses>12?24:12).map(m=>{
+    const hRec=Math.max(4,m.receber/maxVal*80);
+    const hPag=Math.max(4,m.pagar/maxVal*80);
+    const label=MESES[m.d.getMonth()].slice(0,3);
+    return `<div class="proj-bar-col" onclick="irMes('${m.d.getFullYear()}','${m.d.getMonth()}')" title="${MESES[m.d.getMonth()]} ${m.d.getFullYear()}: saldo ${brl(m.saldo)}">
+      <div style="display:flex;align-items:flex-end;gap:2px;height:80px">
+        <div class="pb" style="width:10px;height:${hRec}px;background:var(--green);opacity:${m.isNow?1:.75}"></div>
+        <div class="pb" style="width:10px;height:${hPag}px;background:var(--red);opacity:${m.isNow?1:.75}"></div>
+      </div>
+      <div class="pl">${label}${m.isNow?'<br>◆':''}</div>
+    </div>`;
+  }).join('');
+  $('projBars').innerHTML=barsHtml;
+
+  // cards filtrados
+  const filtrados=mesesData.filter(m=>{
+    if(_projFiltro==='deficit') return m.saldo<0;
+    if(_projFiltro==='superavit') return m.saldo>=0;
+    return true;
+  });
   let html='';
-  for(let i=0;i<calMeses;i++){
-    const d=new Date(base.getFullYear(),base.getMonth()+i,1);
-    const comp=compStr(d);
-    const pagar=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='despesa').reduce((s,l)=>s+ +l.valor,0);
-    const receber=state.lancamentos.filter(l=>l.competencia===comp&&l.tipo==='receita').reduce((s,l)=>s+ +l.valor,0);
-    const saldo=receber-pagar;
-    const isNow=i===0;
-    html+=`<div class="cal ${isNow?'now':''}" onclick="irMes('${d.getFullYear()}','${d.getMonth()}')">
-      <div class="mes">${MESES[d.getMonth()]} ${d.getFullYear()} ${isNow?'<span class="hoje">agora</span>':''}</div>
-      <div class="lin"><span class="l">🔴 A pagar</span><span class="v">${brl(pagar)}</span></div>
+  filtrados.forEach(({d,pagar,receber,saldo,isNow})=>{
+    const pct=receber>0?Math.min(100,Math.round(pagar/receber*100)):100;
+    const barColor=pct>90?'var(--red)':pct>70?'var(--yellow)':'var(--green)';
+    const health=saldo>=0?'🟢':saldo>=-200?'🟡':'🔴';
+    const cls='cal'+(isNow?' now':'')+(saldo<0?' deficit':' superavit');
+    html+=`<div class="${cls}" onclick="irMes('${d.getFullYear()}','${d.getMonth()}')">
+      <div class="mes">${MESES[d.getMonth()]} ${d.getFullYear()}
+        <div style="display:flex;align-items:center;gap:6px">
+          ${isNow?'<span class="hoje">agora</span>':''}
+          <span class="health">${health}</span>
+        </div>
+      </div>
+      <div class="lin"><span class="l">🔴 A pagar</span><span class="v" style="color:var(--red)">${brl(pagar)}</span></div>
       <div class="lin"><span class="l">🟢 Entradas</span><span class="v" style="color:var(--green)">${brl(receber)}</span></div>
+      <div class="prog-wrap">
+        <div class="prog-lbl"><span>Comprometido</span><span>${pct}%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      </div>
       <div class="saldo"><span class="l">Saldo</span><span style="font-weight:800;color:${saldo>=0?'var(--green)':'var(--red)'}">${brl(saldo)}</span></div>
       <button class="add" onclick="event.stopPropagation();addExtra('${d.getFullYear()}','${d.getMonth()}')">＋ Adicionar lançamento</button>
     </div>`;
-  }
+  });
+  if(!html) html='<div class="empty" style="grid-column:1/-1"><div class="e">🔍</div>Nenhum mês encontrado para esse filtro.</div>';
   $('calGrid').innerHTML=html;
 }
 function miniProj(meses){
