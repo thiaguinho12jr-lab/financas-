@@ -334,6 +334,18 @@
       <button class="btn" onclick="openPlano()">＋ Novo plano</button>
     </div>
     <div class="kpis" id="planosKpis"></div>
+
+    <!-- META DE POUPANÇA 20% POR FONTE -->
+    <div class="panel" style="margin-bottom:22px">
+      <h3><span class="t">🏦 Meta de Poupança — Regra 20% por fonte</span>
+        <button class="btn sm ghost" onclick="salvarMetaPoupanca()">💾 Salvar</button>
+      </h3>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:16px">Informe sua renda de cada fonte. O sistema calculará 20% de cada uma e monitorará o quanto você já guardou.</p>
+      <div id="fontesLista" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>
+      <button class="btn ghost sm" onclick="addFonte()">＋ Adicionar fonte de renda</button>
+      <div id="resumoPoupanca" style="margin-top:18px"></div>
+    </div>
+
     <div class="cards-grid" id="planosGrid"></div>
   </section>
 
