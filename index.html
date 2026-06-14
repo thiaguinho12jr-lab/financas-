@@ -1117,10 +1117,10 @@ async function fecharMes(){
   if(error){toast('Erro ao fechar mês: '+error.message);return;}
   // adiciona ao state local imediatamente (sem esperar realtime)
   state.mesesEncerrados=[...state.mesesEncerrados,{competencia:cs,criado_em:new Date().toISOString()}];
-  // muda mês ANTES de qualquer render
-  const h=new Date(); cur=new Date(h.getFullYear(),h.getMonth(),1);
+  // navega para o PRÓXIMO mês (o mês fechado + 1)
+  cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
   render(); // render síncrono — garante navegação mesmo sem rede
-  toast(`${nome} encerrado ✅`);
+  toast(`${nome} encerrado ✅ — indo para ${MESES[cur.getMonth()]}`);
   loadAll(); // atualiza dados em background
 }
 async function reabrirMes(cs){
