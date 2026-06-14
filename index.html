@@ -1081,13 +1081,13 @@ function renderReceber(){
     const pct=totalParcelas?Math.min(100,Math.round(pagas/totalParcelas*100)):null;
     const barColor=pct===100?'var(--green)':pct>50?'var(--yellow)':'var(--acc)';
     const prazoFmt=x.prazo?new Date(x.prazo+'T00:00').toLocaleDateString('pt-BR'):null;
-    return `<div class="panel" style="padding:16px;border-left:4px solid ${quitado?'var(--green)':'var(--yellow)'}">
+    return `<div class="panel" style="padding:16px;border-left:4px solid ${quitado?'var(--green)':'var(--yellow)'};cursor:pointer" onclick='detalheReceber(${JSON.stringify(x)})'>
       <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
         <div>
           <div style="font-weight:800;font-size:15px">${x.descricao}</div>
           <div style="font-size:13px;color:var(--mut)">👤 ${x.pessoa||'—'} • <span class="tag cat" style="font-size:11px">${x.tipo||'—'}</span></div>
         </div>
-        <div style="white-space:nowrap"><button class="ico-btn" onclick='openReceber(${JSON.stringify(x)})'>✏️</button><button class="ico-btn del" onclick="delRow('fin_a_receber','${x.id}')">🗑️</button></div>
+        <div style="white-space:nowrap" onclick="event.stopPropagation()"><button class="ico-btn" onclick='openReceber(${JSON.stringify(x)})'>✏️</button><button class="ico-btn del" onclick="delRow('fin_a_receber','${x.id}')">🗑️</button></div>
       </div>
       ${x.observacao?`<div style="font-size:12.5px;color:var(--mut2);margin-top:6px">📝 ${x.observacao}</div>`:''}
       <div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap">
@@ -1107,13 +1107,90 @@ function renderReceber(){
           <div style="height:100%;width:${pct}%;background:${barColor};border-radius:6px;transition:width .5s"></div>
         </div>
       </div>`:''}
-      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <div style="display:flex;justify-content:flex-end;margin-top:12px" onclick="event.stopPropagation()">
         ${quitado
           ?`<span class="tag badge recebido" style="font-size:13px;padding:6px 12px">✓ quitado</span>`
           :`<button class="tag badge pendente" style="font-size:13px;padding:6px 14px" onclick="marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`}
       </div>
     </div>`;
   }).join('');
+}
+function detalheReceber(x){
+  const quitado=x.status==='recebido';
+  const totalParcelas=recebTotalParcelas(x);
+  const pagas=+x.parcelas_pagas||0;
+  const pct=totalParcelas?Math.min(100,Math.round(pagas/totalParcelas*100)):null;
+  const barColor=pct===100?'var(--green)':pct>50?'var(--yellow)':'var(--acc)';
+  const prazoFmt=x.prazo?new Date(x.prazo+'T00:00').toLocaleDateString('pt-BR'):null;
+  const criadoFmt=x.criado_em?new Date(x.criado_em).toLocaleDateString('pt-BR'):'—';
+  const restante=totalParcelas?Math.max(0,totalParcelas-pagas):null;
+  const restValor=restante&&+x.valor_parcela>0?restante*+x.valor_parcela:null;
+
+  showModal(`
+   <div class="mh">
+     <div>
+       <h3 style="font-size:18px">${x.descricao}</h3>
+       <div style="font-size:13px;color:var(--mut);margin-top:2px">👤 ${x.pessoa||'—'} • ${x.tipo||'—'}</div>
+     </div>
+     <button class="ico-btn" onclick="closeModal()">✕</button>
+   </div>
+   <div class="mb" style="gap:0;padding:0">
+
+     <!-- STATUS BADGE -->
+     <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+       <span class="tag badge ${quitado?'recebido':'pendente'}" style="font-size:13px;padding:6px 14px">${quitado?'✓ Quitado':'● Em aberto'}</span>
+       ${x.observacao?`<span style="font-size:12.5px;color:var(--mut2)">📝 ${x.observacao}</span>`:''}
+     </div>
+
+     <!-- VALORES -->
+     <div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:24px;flex-wrap:wrap">
+       <div>
+         <div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Dívida total</div>
+         <div style="font-size:28px;font-weight:800;color:${quitado?'var(--green)':'var(--txt)'}">${brl(+x.valor)}</div>
+       </div>
+       ${+x.valor_parcela>0?`<div>
+         <div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Parcela mensal</div>
+         <div style="font-size:28px;font-weight:800;color:var(--blue)">${brl(+x.valor_parcela)}</div>
+       </div>`:''}
+       ${restValor!==null?`<div>
+         <div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ainda a receber</div>
+         <div style="font-size:28px;font-weight:800;color:var(--yellow)">${brl(restValor)}</div>
+       </div>`:''}
+     </div>
+
+     <!-- PROGRESSO -->
+     ${pct!==null?`
+     <div style="padding:18px 20px;border-bottom:1px solid var(--line)">
+       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
+         <span style="font-weight:700">${pagas} de ${totalParcelas} parcelas recebidas</span>
+         <span style="color:${barColor};font-weight:800">${pct}%</span>
+       </div>
+       <div style="height:12px;background:var(--bg2);border-radius:8px;overflow:hidden">
+         <div style="height:100%;width:${pct}%;background:${barColor};border-radius:8px;transition:width .5s"></div>
+       </div>
+       ${restante>0?`<div style="font-size:12px;color:var(--mut2);margin-top:6px">Faltam ${restante} parcela(s)</div>`:''}
+     </div>`:''}
+
+     <!-- DATAS -->
+     <div style="padding:18px 20px;display:flex;gap:24px;flex-wrap:wrap">
+       <div>
+         <div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Cadastrado em</div>
+         <div style="font-size:14px;font-weight:600">${criadoFmt}</div>
+       </div>
+       ${prazoFmt?`<div>
+         <div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Prazo até</div>
+         <div style="font-size:14px;font-weight:600">${prazoFmt}</div>
+       </div>`:''}
+     </div>
+   </div>
+
+   <div class="mf" style="justify-content:space-between">
+     <div style="display:flex;gap:8px">
+       <button class="btn ghost sm" onclick="closeModal();openReceber(${JSON.stringify(x).replace(/'/g,'&#39;')})">✏️ Editar</button>
+       <button class="btn ghost sm" style="color:var(--red)" onclick="delRow('fin_a_receber','${x.id}');closeModal()">🗑️ Excluir</button>
+     </div>
+     ${!quitado?`<button class="btn" onclick="closeModal();marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`:''}
+   </div>`);
 }
 async function marcarRecebidoMes(id,pagas,desc,pessoa,parcela,total){
   const novoPagas=pagas+1;
