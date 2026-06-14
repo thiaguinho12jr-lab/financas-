@@ -1186,7 +1186,7 @@ function detalheReceber(x){
 
    <div class="mf" style="justify-content:space-between">
      <div style="display:flex;gap:8px">
-       <button class="btn ghost sm" onclick="closeModal();openReceber(${JSON.stringify(x).replace(/'/g,'&#39;')})">✏️ Editar</button>
+       <button class="btn ghost sm" onclick="closeModal();openReceberById('${x.id}')">✏️ Editar</button>
        <button class="btn ghost sm" style="color:var(--red)" onclick="delRow('fin_a_receber','${x.id}');closeModal()">🗑️ Excluir</button>
      </div>
      ${!quitado?`<button class="btn" onclick="closeModal();marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`:''}
@@ -1496,6 +1496,7 @@ async function saveCartao(id){
   closeModal();
 }
 
+function openReceberById(id){const r=state.areceber.find(x=>x.id===id);if(r)openReceber(r);}
 function openReceber(r){
   r=r||{};const isEdit=!!r.id;
   showModal(`
