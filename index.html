@@ -1055,29 +1055,89 @@ function renderCartoes(){
   }).join('');
 }
 
+function recebTotalParcelas(x){
+  if(+x.valor_parcela>0 && x.prazo){
+    const ini=new Date(x.criado_em||Date.now());
+    const fim=new Date(x.prazo+'T00:00');
+    return Math.max(1,Math.round((fim-ini)/2592000000));
+  }
+  if(+x.valor>0 && +x.valor_parcela>0) return Math.ceil(+x.valor/+x.valor_parcela);
+  return null;
+}
 function renderReceber(){
   const r=state.areceber;
-  const pend=r.filter(x=>x.status==='pendente').reduce((s,x)=>s+ +x.valor,0);
-  const receb=r.filter(x=>x.status==='recebido').reduce((s,x)=>s+ +x.valor,0);
+  const totalDiv=r.filter(x=>x.status!=='recebido').reduce((s,x)=>s+ +x.valor,0);
+  const parcelaMensal=r.filter(x=>x.status!=='recebido'&&+x.valor_parcela>0).reduce((s,x)=>s+ +x.valor_parcela,0);
+  const recebidos=r.filter(x=>x.status==='recebido').length;
   $('receberKpis').innerHTML=`
-    ${kpi('yellow','⏳','A receber (pendente)',brl(pend),r.filter(x=>x.status==='pendente').length+' pessoas')}
-    ${kpi('green','✅','Já recebido',brl(receb),'total quitado')}
-    ${kpi('blue','📊','Total geral',brl(pend+receb),r.length+' registros')}`;
+    ${kpi('yellow','⏳','Total das dívidas',brl(totalDiv),r.filter(x=>x.status!=='recebido').length+' pessoas')}
+    ${kpi('blue','📅','Entrada mensal',brl(parcelaMensal),'soma das parcelas')}
+    ${kpi('green','✅','Já quitados',recebidos,r.length+' registros totais')}`;
   if(!r.length){$('receberCards').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="e">📥</div>Nada a receber.<br><br><button class="btn" onclick="openReceber()">＋ Adicionar primeiro</button></div>';return;}
   $('receberCards').innerHTML=r.map(x=>{
-    const ok=x.status==='recebido';
-    return `<div class="panel" style="padding:16px;border-left:4px solid ${ok?'var(--green)':'var(--yellow)'}">
+    const quitado=x.status==='recebido';
+    const totalParcelas=recebTotalParcelas(x);
+    const pagas=+x.parcelas_pagas||0;
+    const pct=totalParcelas?Math.min(100,Math.round(pagas/totalParcelas*100)):null;
+    const barColor=pct===100?'var(--green)':pct>50?'var(--yellow)':'var(--acc)';
+    const prazoFmt=x.prazo?new Date(x.prazo+'T00:00').toLocaleDateString('pt-BR'):null;
+    return `<div class="panel" style="padding:16px;border-left:4px solid ${quitado?'var(--green)':'var(--yellow)'}">
       <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-        <div><div style="font-weight:800;font-size:15px">${x.descricao}</div>
-          <div style="font-size:13px;color:var(--mut)">👤 ${x.pessoa||'—'} • <span class="tag cat" style="font-size:11px">${x.tipo||'—'}</span></div></div>
+        <div>
+          <div style="font-weight:800;font-size:15px">${x.descricao}</div>
+          <div style="font-size:13px;color:var(--mut)">👤 ${x.pessoa||'—'} • <span class="tag cat" style="font-size:11px">${x.tipo||'—'}</span></div>
+        </div>
         <div style="white-space:nowrap"><button class="ico-btn" onclick='openReceber(${JSON.stringify(x)})'>✏️</button><button class="ico-btn del" onclick="delRow('fin_a_receber','${x.id}')">🗑️</button></div>
       </div>
-      ${x.observacao?`<div style="font-size:12.5px;color:var(--mut2);margin-top:8px">📝 ${x.observacao}</div>`:''}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
-        <span style="font-size:22px;font-weight:800;color:var(--green)">${brl(+x.valor)}</span>
-        <button class="tag badge ${ok?'recebido':'pendente'}" style="font-size:13px;padding:6px 12px" onclick="toggleReceber('${x.id}','${x.status}')">${ok?'✓ recebido':'● marcar recebido'}</button>
-      </div></div>`;
+      ${x.observacao?`<div style="font-size:12.5px;color:var(--mut2);margin-top:6px">📝 ${x.observacao}</div>`:''}
+      <div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap">
+        <div><div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px">Dívida total</div>
+          <div style="font-size:20px;font-weight:800;color:${quitado?'var(--green)':'var(--txt)'}">${brl(+x.valor)}</div></div>
+        ${+x.valor_parcela>0?`<div><div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px">Parcela/mês</div>
+          <div style="font-size:20px;font-weight:800;color:var(--blue)">${brl(+x.valor_parcela)}</div></div>`:''}
+        ${prazoFmt?`<div><div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px">Prazo até</div>
+          <div style="font-size:14px;font-weight:700;margin-top:4px">${prazoFmt}</div></div>`:''}
+      </div>
+      ${pct!==null?`
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut2);margin-bottom:4px">
+          <span>${pagas} de ${totalParcelas} parcelas recebidas</span><span>${pct}%</span>
+        </div>
+        <div style="height:8px;background:var(--bg2);border-radius:6px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:6px;transition:width .5s"></div>
+        </div>
+      </div>`:''}
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        ${quitado
+          ?`<span class="tag badge recebido" style="font-size:13px;padding:6px 12px">✓ quitado</span>`
+          :`<button class="tag badge pendente" style="font-size:13px;padding:6px 14px" onclick="marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`}
+      </div>
+    </div>`;
   }).join('');
+}
+async function marcarRecebidoMes(id,pagas,desc,pessoa,parcela,total){
+  const novoPagas=pagas+1;
+  const quitando=total>0&&novoPagas>=total;
+  await sb.from('fin_a_receber').update({
+    parcelas_pagas:novoPagas,
+    ...(quitando?{status:'recebido'}:{})
+  }).eq('id',id);
+  // Cria lembrete para próximo mês no mesmo dia
+  if(!quitando&&parcela>0){
+    const hoje=new Date();
+    const proximo=new Date(hoje.getFullYear(),hoje.getMonth()+1,hoje.getDate());
+    await sb.from('fin_eventos').insert({
+      titulo:`Receber de ${pessoa||desc}`,
+      data:dayStr(proximo),
+      valor:parcela,
+      tipo:'entrada',
+      status:'pendente',
+      observacao:desc
+    });
+    toast(`Marcado ✓ — lembrete criado para ${proximo.toLocaleDateString('pt-BR')}`);
+  } else {
+    toast(quitando?'Quitado! 🎉':'Recebimento registrado ✓');
+  }
 }
 
 // ── META DE POUPANÇA ──────────────────────────────────────────
@@ -1364,23 +1424,35 @@ function openReceber(r){
   showModal(`
    <div class="mh"><h3>${isEdit?'✏️ Editar':'＋ Novo'} a receber</h3><button class="ico-btn" onclick="closeModal()">✕</button></div>
    <div class="mb">
-     <div class="field"><label>Descrição</label><input id="r_desc" value="${r.descricao||''}"></div>
+     <div class="field"><label>Descrição</label><input id="r_desc" value="${r.descricao||''}" placeholder="Ex: Mãe Cartão, Erick..."></div>
      <div class="row2">
        <div class="field"><label>Pessoa</label><input id="r_pessoa" value="${r.pessoa||''}" placeholder="Quem te deve"></div>
-       <div class="field"><label>Valor (R$)</label><input id="r_valor" type="number" step="0.01" value="${r.valor||''}"></div>
-     </div>
-     <div class="row2">
        <div class="field"><label>Tipo</label><input id="r_tipo" list="tipos" value="${r.tipo||'Cartão'}" placeholder="Cartão / Dinheiro">
          <datalist id="tipos"><option>Cartão</option><option>Dinheiro emprestado</option><option>Outro</option></datalist></div>
-       <div class="field"><label>Status</label><select id="r_status"><option value="pendente" ${r.status!=='recebido'?'selected':''}>Pendente</option><option value="recebido" ${r.status==='recebido'?'selected':''}>Recebido</option></select></div>
      </div>
-     <div class="field"><label>Observação</label><input id="r_obs" value="${r.observacao||''}" placeholder="Ex: 3x de 152, anotação..."></div>
+     <div class="row2">
+       <div class="field"><label>💰 Total da dívida (R$)</label><input id="r_valor" type="number" step="0.01" value="${r.valor||''}" placeholder="Valor total que te devem"></div>
+       <div class="field"><label>📅 Parcela mensal (R$)</label><input id="r_parcela" type="number" step="0.01" value="${r.valor_parcela||''}" placeholder="Quanto recebe por mês"></div>
+     </div>
+     <div class="row2">
+       <div class="field"><label>🗓️ Prazo (até quando)</label><input id="r_prazo" type="date" value="${r.prazo||''}"></div>
+       <div class="field"><label>Status</label><select id="r_status"><option value="pendente" ${r.status!=='recebido'?'selected':''}>Ativo (recebendo)</option><option value="recebido" ${r.status==='recebido'?'selected':''}>Quitado</option></select></div>
+     </div>
+     <div class="field"><label>Observação</label><input id="r_obs" value="${r.observacao||''}" placeholder="Ex: 6x de 150, cartão tal..."></div>
    </div>
    <div class="mf"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveReceber('${r.id||''}')">Salvar</button></div>`);
 }
 async function saveReceber(id){
-  const data={descricao:$('r_desc').value.trim(),pessoa:$('r_pessoa').value.trim()||null,tipo:$('r_tipo').value.trim()||'Cartão',
-    valor:parseFloat($('r_valor').value)||0,status:$('r_status').value,observacao:$('r_obs').value.trim()||null};
+  const data={
+    descricao:$('r_desc').value.trim(),
+    pessoa:$('r_pessoa').value.trim()||null,
+    tipo:$('r_tipo').value.trim()||'Cartão',
+    valor:parseFloat($('r_valor').value)||0,
+    valor_parcela:parseFloat($('r_parcela').value)||0,
+    prazo:$('r_prazo').value||null,
+    status:$('r_status').value,
+    observacao:$('r_obs').value.trim()||null
+  };
   if(!data.descricao){toast('Informe a descrição');return;}
   if(id){await sb.from('fin_a_receber').update(data).eq('id',id);toast('Atualizado');}
   else{await sb.from('fin_a_receber').insert(data);toast('Adicionado');}
