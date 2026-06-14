@@ -200,6 +200,12 @@
   .emp-grid .it .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
   .emp-grid .it .v{font-size:18px;font-weight:800;margin-top:3px}
 
+  .hist-item{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .hist-item .hist-ico{font-size:28px;flex-shrink:0}
+  .hist-item .hist-info{flex:1}
+  .hist-item .hist-nome{font-size:16px;font-weight:800}
+  .hist-item .hist-det{font-size:13px;color:var(--mut);margin-top:4px}
+  .hist-item .hist-enc{font-size:11px;color:var(--green);font-weight:700;margin-top:3px}
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--line);padding:12px 20px;border-radius:12px;box-shadow:var(--shadow);z-index:100;opacity:0;transition:.3s;font-size:14px;font-weight:600}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #loading{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
@@ -361,6 +367,7 @@
     <div class="tab" data-v="emprestimos" onclick="setTab('emprestimos')">🏦 Empréstimos</div>
     <div class="tab" data-v="planos" onclick="setTab('planos')">🎯 Planos</div>
     <div class="tab" data-v="sugestoes" onclick="setTab('sugestoes')">💡 Sugestões</div>
+    <div class="tab" data-v="historico" onclick="setTab('historico')">📋 Histórico</div>
   </nav>
 </aside>
 <div class="sb-backdrop" id="sbBackdrop" onclick="closeSidebar()"></div>
@@ -495,6 +502,15 @@
     <div class="toolbar"><h2>💡 Sugestões financeiras</h2></div>
     <div id="sugestoesContent"></div>
   </section>
+
+  <!-- HISTÓRICO DE MESES ENCERRADOS -->
+  <section class="view" id="view-historico">
+    <div class="toolbar">
+      <h2>📋 Meses Encerrados</h2>
+    </div>
+    <p style="font-size:13px;color:var(--mut);margin-bottom:20px">Meses que você marcou como quitados. Para encerrar um mês, navegue até ele na Visão Geral e clique em <strong>✅ Fechar Mês</strong>.</p>
+    <div id="historicoList"></div>
+  </section>
 </main>
 </div>
 
@@ -508,7 +524,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-let state={cartoes:[],lancamentos:[],areceber:[],emprestimos:[],planos:[],eventos:[]};
+let state={cartoes:[],lancamentos:[],areceber:[],emprestimos:[],planos:[],eventos:[],mesesEncerrados:[]};
 let cur=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),1);})(); // sempre inicia no mês atual
 const CACHE_KEY='fin_cache_v1';
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({t:Date.now(),s:state}));}catch(e){}}
@@ -523,19 +539,20 @@ function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');set
 
 // ---------- DATA ----------
 async function loadAll(){
-  const [c,l,r,e,p,ev]=await Promise.all([
+  const [c,l,r,e,p,ev,mes]=await Promise.all([
     sb.from('fin_cartoes').select('*').order('ordem'),
     sb.from('fin_lancamentos').select('*').order('criado_em'),
     sb.from('fin_a_receber').select('*').order('criado_em'),
     sb.from('fin_emprestimos').select('*').order('criado_em'),
     sb.from('fin_planos').select('*').order('ordem'),
-    sb.from('fin_eventos').select('*').order('data')
+    sb.from('fin_eventos').select('*').order('data'),
+    sb.from('fin_meses_encerrados').select('*').order('competencia')
   ]);
   // se as tabelas principais falharem, não sobrescreve o estado com arrays vazios
   if(c.error||l.error||r.error||e.error) return;
   state.cartoes=c.data||[]; state.lancamentos=l.data||[];
   state.areceber=r.data||[]; state.emprestimos=e.data||[]; state.planos=p.data||[];
-  state.eventos=ev.data||[];
+  state.eventos=ev.data||[]; state.mesesEncerrados=mes.data||[];
   planosOk = !p.error;
   eventosOk = !ev.error;
   saveCache();
@@ -551,6 +568,7 @@ function setupRealtime(){
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_emprestimos'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_planos'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_eventos'},loadAll)
+   .on('postgres_changes',{event:'*',schema:'public',table:'fin_meses_encerrados'},loadAll)
    .subscribe(s=>{
       const live=s==='SUBSCRIBED';
       if(live){
@@ -709,7 +727,7 @@ async function saveEvento(id){
 // ---------- RENDER ----------
 function render(){
   $('monthLbl').textContent=`${MESES[cur.getMonth()]} ${cur.getFullYear()}`;
-  renderDash(); renderCalendario(); renderProjecao(); renderLanc(); renderCartoes(); renderReceber(); renderEmprestimos(); renderPlanos(); renderSugestoes();
+  renderDash(); renderCalendario(); renderProjecao(); renderLanc(); renderCartoes(); renderReceber(); renderEmprestimos(); renderPlanos(); renderSugestoes(); renderHistorico();
 }
 
 // ---------- PROJEÇÃO ----------
@@ -847,15 +865,28 @@ function renderDash(){
   const aReceber=state.areceber.filter(r=>r.status==='pendente').reduce((s,r)=>s+ +r.valor,0);
   const saldo=totRec-totDesp;
 
+  const hoje=new Date();
+  const isPast=cur.getFullYear()<hoje.getFullYear()||(cur.getFullYear()===hoje.getFullYear()&&cur.getMonth()<hoje.getMonth());
+  const cs=compStr(cur);
+  const encerrado=state.mesesEncerrados.find(m=>m.competencia===cs);
+  const heroStyle=encerrado?'style="background:linear-gradient(135deg,#15803d,#166534)"':'';
+  const bannerEnc=encerrado?`<div style="background:rgba(255,255,255,.18);border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:14px;font-weight:700">✅ Mês encerrado — contas quitadas!</div>`:'';
+  const btFechar=isPast&&!encerrado?`<button class="btn" style="background:rgba(255,255,255,.2);margin-top:8px" onclick="fecharMes()">✅ Fechar Mês</button>`:'';
+  const btReabrir=encerrado?`<button class="btn" style="background:rgba(255,255,255,.15);margin-top:8px" onclick="reabrirMes('${cs}')">↩ Reabrir</button>`:'';
+
   // HERO: foco no mês — quanto falta pagar e progresso
-  $('heroMes').innerHTML=`<div class="hero"><div class="hgloss"></div>
+  $('heroMes').innerHTML=`<div class="hero" ${heroStyle}><div class="hgloss"></div>
+    ${bannerEnc}
     <div class="htop">
       <div>
-        <div class="hlbl">Falta pagar em ${MESES[cur.getMonth()]}</div>
-        <div class="hbig">${brl(falta)}</div>
-        <div class="hsub">${despesas.filter(l=>l.status!=='pago').length} conta(s) pendente(s) de ${despesas.length}</div>
+        <div class="hlbl">${encerrado?'Resumo de':'Falta pagar em'} ${MESES[cur.getMonth()]} ${cur.getFullYear()}</div>
+        <div class="hbig">${encerrado?brl(totDesp):brl(falta)}</div>
+        <div class="hsub">${encerrado?despesas.length+' conta(s) no total — tudo pago':despesas.filter(l=>l.status!=='pago').length+' conta(s) pendente(s) de '+despesas.length}</div>
       </div>
-      <button class="btn" style="background:rgba(255,255,255,.2)" onclick="openLanc()">＋ Lançar conta</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end">
+        <button class="btn" style="background:rgba(255,255,255,.2)" onclick="openLanc()">＋ Lançar conta</button>
+        ${btFechar}${btReabrir}
+      </div>
     </div>
     <div class="hprog"><div class="f" style="width:${pctPago}%"></div></div>
     <div class="hsub" style="margin-top:6px">${pctPago.toFixed(0)}% das contas do mês já pagas</div>
@@ -1031,6 +1062,44 @@ function renderSugestoes(){
         </div>`).join('')}
     </div>`;
   $('sugestoesContent').innerHTML=html;
+}
+
+// ---------- MESES ENCERRADOS ----------
+async function fecharMes(){
+  const cs=compStr(cur);
+  const nome=`${MESES[cur.getMonth()]} ${cur.getFullYear()}`;
+  if(!confirm(`Fechar ${nome}?\n\nIsso indica que você já pagou todas as contas deste mês.`)) return;
+  const {error}=await sb.from('fin_meses_encerrados').insert({competencia:cs});
+  if(error){toast('Erro ao fechar mês: '+error.message);return;}
+  toast(`${nome} encerrado ✅`);
+}
+async function reabrirMes(cs){
+  if(!confirm('Reabrir este mês?')) return;
+  await sb.from('fin_meses_encerrados').delete().eq('competencia',cs);
+  toast('Mês reaberto');
+}
+function renderHistorico(){
+  const el=$('historicoList');
+  if(!el) return;
+  const hist=[...state.mesesEncerrados].sort((a,b)=>b.competencia.localeCompare(a.competencia));
+  if(!hist.length){el.innerHTML='<div class="empty"><div class="e">📭</div>Nenhum mês encerrado ainda.<br><span style="font-size:13px">Navegue para um mês passado e clique em ✅ Fechar Mês.</span></div>';return;}
+  el.innerHTML=hist.map(m=>{
+    const [y,mo]=m.competencia.split('-');
+    const nome=`${MESES[+mo-1]} ${y}`;
+    const lancs=state.lancamentos.filter(l=>l.competencia===m.competencia&&l.tipo==='despesa');
+    const total=lancs.reduce((s,l)=>s+ +l.valor,0);
+    const pagas=lancs.filter(l=>l.status==='pago').length;
+    const dataEnc=new Date(m.criado_em).toLocaleDateString('pt-BR');
+    return `<div class="hist-item">
+      <div class="hist-ico">✅</div>
+      <div class="hist-info">
+        <div class="hist-nome">${nome}</div>
+        <div class="hist-det">${brl(total)} gastos · ${pagas}/${lancs.length} contas pagas</div>
+        <div class="hist-enc">Encerrado em ${dataEnc}</div>
+      </div>
+      <button class="btn ghost sm" onclick="reabrirMes('${m.competencia}')">↩ Reabrir</button>
+    </div>`;
+  }).join('');
 }
 
 function renderCartoes(){
