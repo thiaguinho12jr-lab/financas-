@@ -321,7 +321,7 @@
   <div class="month-nav">
     <span class="sync" id="syncTxt">🟢 ao vivo</span>
     <button onclick="changeMonth(-1)">‹</button>
-    <span class="month-lbl" id="monthLbl">—</span>
+    <span class="month-lbl" id="monthLbl" onclick="goToday()" title="Clique para voltar ao mês atual" style="cursor:pointer">—</span>
     <button onclick="changeMonth(1)">›</button>
   </div>
   <button class="ico-btn" id="themeBtn" title="Alternar tema" onclick="toggleTheme()" style="font-size:18px">🌙</button>
@@ -554,6 +554,7 @@ function setTab(v){
 function toggleSidebar(){$('sidebar').classList.toggle('open');$('sbBackdrop').classList.toggle('show');}
 function closeSidebar(){$('sidebar').classList.remove('open');$('sbBackdrop').classList.remove('show');}
 function changeMonth(d){cur=new Date(cur.getFullYear(),cur.getMonth()+d,1);render();}
+function goToday(){const t=new Date();cur=new Date(t.getFullYear(),t.getMonth(),1);render();toast('Voltou para '+MESES[cur.getMonth()]+' '+cur.getFullYear());}
 
 // ---------- CALENDÁRIO DE VENCIMENTOS ----------
 function eventoCor(e){
