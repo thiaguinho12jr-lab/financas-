@@ -556,6 +556,14 @@ async function loadAll(){
   state.eventos=ev.data||[]; state.mesesEncerrados=mes.data||[];
   planosOk = !p.error;
   eventosOk = !ev.error;
+  // se o mês que está sendo exibido é o mês atual do calendário E já está encerrado,
+  // avança automaticamente para o próximo mês
+  const hoje=new Date();
+  const hojeCs=compStr(hoje);
+  const curCs=compStr(cur);
+  if(curCs===hojeCs && state.mesesEncerrados.find(m=>m.competencia===curCs)){
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
   saveCache();
   render();
 }
