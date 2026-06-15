@@ -1243,7 +1243,9 @@ function renderReceber(){
       <div style="display:flex;justify-content:flex-end;margin-top:12px" onclick="event.stopPropagation()">
         ${quitado
           ?`<span class="tag badge recebido" style="font-size:13px;padding:6px 12px">✓ quitado</span>`
-          :`<button class="tag badge pendente" style="font-size:13px;padding:6px 14px" onclick="marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`}
+          :x.ultimo_mes_recebido===compStr(cur)
+            ?`<span class="tag badge recebido" style="font-size:13px;padding:6px 12px">✓ Recebido em ${MESES[cur.getMonth()]}</span>`
+            :`<button class="tag badge pendente" style="font-size:13px;padding:6px 14px" onclick="marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`}
       </div>
     </div>`;
   }).join('');
@@ -1322,7 +1324,7 @@ function detalheReceber(x){
        <button class="btn ghost sm" onclick="closeModal();openReceberById('${x.id}')">✏️ Editar</button>
        <button class="btn ghost sm" style="color:var(--red)" onclick="delRow('fin_a_receber','${x.id}');closeModal()">🗑️ Excluir</button>
      </div>
-     ${!quitado?`<button class="btn" onclick="closeModal();marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`:''}
+     ${!quitado?(x.ultimo_mes_recebido===compStr(cur)?`<span class="tag badge recebido" style="padding:8px 14px;font-size:13px">✓ Recebido em ${MESES[cur.getMonth()]}</span>`:`<button class="btn" onclick="closeModal();marcarRecebidoMes('${x.id}',${pagas},'${x.descricao}','${x.pessoa||''}',${+x.valor_parcela||0},${totalParcelas||0})">✓ Recebido este mês</button>`):''}
    </div>`);
 }
 async function marcarRecebidoMes(id,pagas,desc,pessoa,parcela,total){
@@ -1330,6 +1332,7 @@ async function marcarRecebidoMes(id,pagas,desc,pessoa,parcela,total){
   const quitando=total>0&&novoPagas>=total;
   await sb.from('fin_a_receber').update({
     parcelas_pagas:novoPagas,
+    ultimo_mes_recebido:compStr(cur),
     ...(quitando?{status:'recebido'}:{})
   }).eq('id',id);
   // Cria lembrete para próximo mês no mesmo dia
