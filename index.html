@@ -551,7 +551,13 @@ async function loadAll(){
     sb.from('fin_meses_encerrados').select('*').order('competencia')
   ]);
   // se as tabelas principais falharem, não sobrescreve o estado com arrays vazios
-  if(c.error||l.error||r.error||e.error) return;
+  if(c.error||l.error||r.error||e.error){
+    $('statusDot').className='dot off';
+    $('syncTxt').innerHTML='🔴 sem conexão';
+    return;
+  }
+  $('statusDot').className='dot';
+  $('syncTxt').innerHTML='🟢 ao vivo';
   state.cartoes=c.data||[]; state.lancamentos=l.data||[];
   state.areceber=r.data||[]; state.emprestimos=e.data||[]; state.planos=p.data||[];
   state.eventos=ev.data||[]; state.mesesEncerrados=mes.data||[];
