@@ -608,7 +608,7 @@ function setTab(v){
 function toggleSidebar(){$('sidebar').classList.toggle('open');$('sbBackdrop').classList.toggle('show');}
 function closeSidebar(){$('sidebar').classList.remove('open');$('sbBackdrop').classList.remove('show');}
 function changeMonth(d){cur=new Date(cur.getFullYear(),cur.getMonth()+d,1);render();}
-function goToday(){const t=new Date();cur=new Date(t.getFullYear(),t.getMonth(),1);render();closeMonthPicker();toast('Voltou para '+MESES[cur.getMonth()]+' '+cur.getFullYear());}
+function goToday(){const t=new Date();cur=new Date(t.getFullYear(),t.getMonth(),1);if(state.mesesEncerrados.find(m=>m.competencia===compStr(cur)))cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);render();closeMonthPicker();toast('Voltou para '+MESES[cur.getMonth()]+' '+cur.getFullYear());}
 
 let _mpYear=new Date().getFullYear();
 function toggleMonthPicker(){
