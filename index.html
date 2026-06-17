@@ -568,9 +568,10 @@ async function loadAll(){
   render();
 }
 let planosOk=true, eventosOk=true;
+let _reconTimer=null, _rtChannel=null;
 function setupRealtime(){
-  let reconTimer=null;
-  sb.channel('fin-all')
+  if(_rtChannel){try{sb.removeChannel(_rtChannel);}catch(e){} _rtChannel=null;}
+  _rtChannel=sb.channel('fin-all')
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_cartoes'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_lancamentos'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_a_receber'},loadAll)
@@ -579,18 +580,16 @@ function setupRealtime(){
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_eventos'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_meses_encerrados'},loadAll)
    .subscribe(s=>{
-      const live=s==='SUBSCRIBED';
-      if(live){
-        clearTimeout(reconTimer);
+      if(s==='SUBSCRIBED'){
+        clearTimeout(_reconTimer); _reconTimer=null;
         $('statusDot').className='dot';
         $('syncTxt').innerHTML='🟢 ao vivo';
-      } else {
-        // só mostra "reconectando" depois de 5 segundos desconectado
-        if(!reconTimer) reconTimer=setTimeout(()=>{
+      } else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'||s==='CLOSED'){
+        if(!_reconTimer){
           $('statusDot').className='dot off';
           $('syncTxt').innerHTML='🔴 reconectando…';
-          reconTimer=null;
-        },30000);
+          _reconTimer=setTimeout(()=>{ _reconTimer=null; setupRealtime(); },5000);
+        }
       }
    });
 }
