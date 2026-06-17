@@ -589,14 +589,8 @@ function setupRealtime(){
    .subscribe(s=>{
       if(s==='SUBSCRIBED'){
         clearTimeout(_reconTimer); _reconTimer=null;
-        $('statusDot').className='dot';
-        $('syncTxt').innerHTML='🟢 ao vivo';
       } else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT'||s==='CLOSED'){
-        if(!_reconTimer){
-          $('statusDot').className='dot off';
-          $('syncTxt').innerHTML='🔴 reconectando…';
-          _reconTimer=setTimeout(()=>{ _reconTimer=null; setupRealtime(); },5000);
-        }
+        if(!_reconTimer) _reconTimer=setTimeout(()=>{ _reconTimer=null; setupRealtime(); },5000);
       }
    });
 }
