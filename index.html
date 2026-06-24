@@ -174,11 +174,18 @@
   .ccard . util{height:6px;background:rgba(0,0,0,.25);border-radius:4px;overflow:hidden;margin-top:8px}
   .ccard .util .f{height:100%;background:rgba(255,255,255,.85)}
   /* ---- Dívidas / compras parceladas ---- */
-  .divpanel{margin-bottom:14px;padding:0;overflow:hidden}
-  .divhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .divpanel{margin-bottom:10px;padding:0;overflow:hidden}
+  .divhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;flex-wrap:wrap;cursor:pointer;user-select:none;transition:background .12s}
+  .divhead:hover{background:var(--card2)}
+  .divpanel.open .divhead{border-bottom:1px solid var(--line)}
   .divtitle{display:flex;align-items:center;gap:8px;font-size:15px}
+  .divtitle .chev{font-style:normal;color:var(--mut);font-size:12px;display:inline-block;transition:transform .15s;width:12px}
+  .divpanel.open .divtitle .chev{transform:rotate(90deg)}
+  .divtitle .cnt{font-size:11px;color:var(--mut);background:var(--card2);padding:2px 9px;border-radius:11px;margin-left:2px}
   .divtitle .d{width:11px;height:11px;border-radius:50%;flex-shrink:0}
   .divsum{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+  .divbody{display:none}
+  .divpanel.open .divbody{display:block}
   .divlist{display:flex;flex-direction:column}
   .divrow{padding:12px 16px;border-bottom:1px solid var(--line)}
   .divrow:last-child{border-bottom:none}
@@ -1249,28 +1256,36 @@ function renderCartoes(){
   renderDividas();
 }
 
+let _divOpen=new Set();
+function toggleDivCard(id){ _divOpen.has(id)?_divOpen.delete(id):_divOpen.add(id); renderDividas(); }
 function renderDividas(){
   const wrap=$('dividasWrap'); if(!wrap) return;
   if(!dividasOk){
     wrap.innerHTML=`<div class="panel" style="border:1px dashed var(--yellow)"><p style="margin:0;font-size:13px;color:var(--mut)">⚠️ Para usar o controle de dívidas parceladas é preciso criar a tabela <code>fin_cartao_dividas</code> no Supabase. O SQL já foi gerado — rode no <b>SQL Editor</b> e recarregue a página.</p></div>`;
     return;
   }
-  if(!state.cartoes.length){wrap.innerHTML='';return;}
-  wrap.innerHTML=state.cartoes.map(c=>{
+  const comDiv=state.cartoes.filter(c=>dividasDoCartao(c.id).length);
+  if(!comDiv.length){
+    wrap.innerHTML=`<div class="empty" style="padding:28px 20px"><div class="e">📋</div>Nenhuma dívida lançada ainda. Clique em <b>＋ Adicionar dívida</b> para começar.</div>`;
+    return;
+  }
+  wrap.innerHTML=comDiv.map(c=>{
     const ds=dividasDoCartao(c.id).slice().sort((a,b)=>(a.data_primeira||'9999').localeCompare(b.data_primeira||'9999'));
     const devido=ds.reduce((s,d)=>s+restanteDivida(d),0);
     const disp=Math.max(0,(+c.limite)-totalDevidoCartao(c));
-    const linhas=ds.length?ds.map(d=>dividaRow(d)).join(''):`<div style="padding:16px;color:var(--mut);font-size:13px">Nenhuma dívida lançada neste cartão. Clique em <b>＋ Dívida</b> para adicionar uma compra parcelada.</div>`;
-    return `<div class="panel divpanel">
-      <div class="divhead">
-        <div class="divtitle"><span class="d" style="background:${c.cor}"></span><b>${c.nome}</b></div>
+    const aberto=_divOpen.has(c.id);
+    return `<div class="panel divpanel ${aberto?'open':''}">
+      <div class="divhead" onclick="toggleDivCard('${c.id}')">
+        <div class="divtitle"><i class="chev">▸</i><span class="d" style="background:${c.cor}"></span><b>${c.nome}</b><span class="cnt">${ds.length} ${ds.length===1?'dívida':'dívidas'}</span></div>
         <div class="divsum">
-          <span>Em aberto: <b style="color:var(--red)">${brl(devido)}</b></span>
-          <span>Disponível: <b style="color:var(--green)">${brl(disp)}</b></span>
-          <button class="btn sm" onclick="openDivida('${c.id}')">＋ Dívida</button>
+          <span>Deve <b style="color:var(--red)">${brl(devido)}</b></span>
+          <span>Livre <b style="color:var(--green)">${brl(disp)}</b></span>
         </div>
       </div>
-      <div class="divlist">${linhas}</div>
+      <div class="divbody">
+        <div class="divlist">${ds.map(d=>dividaRow(d)).join('')}</div>
+        <div style="padding:12px 16px;border-top:1px solid var(--line)"><button class="btn sm ghost" onclick="openDivida('${c.id}')">＋ Adicionar dívida neste cartão</button></div>
+      </div>
     </div>`;
   }).join('');
 }
