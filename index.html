@@ -1080,7 +1080,7 @@ function renderLanc(){
       <td data-label="Tipo">${isRec?'<span style="color:var(--green)">⬆ Receita</span>':'<span style="color:var(--red)">⬇ Despesa</span>'}</td>
       <td data-label="Status"><button class="tag badge ${l.status}" onclick="toggleLanc('${l.id}','${l.status}')">${l.status==='pago'?'✓ pago':l.status==='recebido'?'✓ recebido':'● pendente'}</button></td>
       <td class="num" data-label="Valor" style="color:${isRec?'var(--green)':'var(--txt)'};font-size:15px">${brl(+l.valor)}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="ico-btn" onclick='openLanc(${JSON.stringify(l)})'>✏️</button><button class="ico-btn del" onclick="delRow('fin_lancamentos','${l.id}')">🗑️</button></td>
+      <td style="text-align:right;white-space:nowrap"><button class="ico-btn" onclick='openLanc(${JSON.stringify(l)})'>✏️</button><button class="ico-btn del" onclick="delLancCascade('${l.id}')">🗑️</button></td>
     </tr>`;
   });
   h+='</tbody>';
