@@ -1799,6 +1799,27 @@ function openLancDetail(l){
 async function toggleLanc(id,st){await sb.from('fin_lancamentos').update({status:st==='pago'?'pendente':'pago'}).eq('id',id);}
 async function toggleReceber(id,st){await sb.from('fin_a_receber').update({status:st==='recebido'?'pendente':'recebido'}).eq('id',id);}
 async function delRow(table,id){if(!confirm('Excluir este item?'))return;await sb.from(table).delete().eq('id',id);toast('Item excluído');}
+
+// ---------- LANÇAMENTOS FIXOS: exclusão/atualização em TODOS os meses ----------
+// Um lançamento fixo é replicado em vários meses (mesma descrição/categoria/tipo, recorrente=true).
+// Estas funções tratam o "grupo" inteiro de uma vez.
+function gruposFixo(l){
+  return state.lancamentos.filter(x=>x.recorrente&&x.tipo===l.tipo&&x.descricao===l.descricao&&x.categoria===l.categoria);
+}
+async function delLancCascade(id){
+  const l=state.lancamentos.find(x=>x.id===id); if(!l)return;
+  if(l.recorrente){
+    const meses=gruposFixo(l).length;
+    if(!confirm(`"${l.descricao}" é uma despesa fixa lançada em ${meses} mes(es).\n\nExcluir de TODOS os meses?`))return;
+    const {error}=await sb.from('fin_lancamentos').delete()
+      .eq('recorrente',true).eq('tipo',l.tipo).eq('descricao',l.descricao).eq('categoria',l.categoria);
+    toast(error?'Erro ao excluir':`Despesa fixa excluída de ${meses} mes(es)`);
+  } else {
+    if(!confirm('Excluir este lançamento?'))return;
+    const {error}=await sb.from('fin_lancamentos').delete().eq('id',id);
+    toast(error?'Erro ao excluir':'Excluído');
+  }
+}
 async function registrarParcela(id,pagas){await sb.from('fin_emprestimos').update({parcelas_pagas:pagas+1}).eq('id',id);toast('Parcela registrada ✓');}
 
 // ---------- MODALS ----------
