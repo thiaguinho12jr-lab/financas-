@@ -1747,7 +1747,7 @@ function shade(hex,p){let n=parseInt(hex.slice(1),16),r=(n>>16)+p,g=(n>>8&255)+p
 
 // ---------- DETALHE LANÇAMENTO ----------
 function openLancById(id){const l=state.lancamentos.find(x=>x.id===id);if(l)openLancDetail(l);}
-async function delLancFromModal(id){if(!confirm('Excluir este lançamento?'))return;await sb.from('fin_lancamentos').delete().eq('id',id);toast('Excluído');closeModal();}
+async function delLancFromModal(id){await delLancCascade(id);closeModal();}
 function openLancDetail(l){
   const hoje=new Date();
   const catH=[];
