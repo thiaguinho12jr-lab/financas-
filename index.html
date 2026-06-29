@@ -1871,7 +1871,23 @@ async function saveLanc(id){
     competencia:compStr(cur)
   };
   if(!data.descricao){toast('Informe a descrição');return;}
-  if(id){await sb.from('fin_lancamentos').update(data).eq('id',id);toast('Lançamento atualizado');}
+  if(id){
+    const orig=state.lancamentos.find(x=>x.id===id);
+    if(orig&&orig.recorrente){
+      // despesa fixa: propaga descrição/valor/categoria/etc. para TODOS os meses,
+      // mas preserva a competência e o status (pago/pendente) de cada mês.
+      const dataFixo={descricao:data.descricao,valor:data.valor,tipo:data.tipo,categoria:data.categoria,
+        cartao_id:data.cartao_id,parcela_atual:data.parcela_atual,parcela_total:data.parcela_total,
+        recorrente:data.recorrente,observacao:data.observacao};
+      await sb.from('fin_lancamentos').update(dataFixo)
+        .eq('recorrente',true).eq('tipo',orig.tipo).eq('descricao',orig.descricao).eq('categoria',orig.categoria);
+      // o status deste mês específico ainda pode ser alterado pelo usuário no formulário
+      if(data.status!==orig.status) await sb.from('fin_lancamentos').update({status:data.status}).eq('id',id);
+      toast('Despesa fixa atualizada em todos os meses ✓');
+    } else {
+      await sb.from('fin_lancamentos').update(data).eq('id',id);toast('Lançamento atualizado');
+    }
+  }
   else if(data.recorrente){
     // despesa fixa: replica nos próximos 12 meses
     const linhas=[]; const base=new Date(cur.getFullYear(),cur.getMonth(),1);
