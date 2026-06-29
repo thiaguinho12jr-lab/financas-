@@ -2045,6 +2045,7 @@ async function startApp(){
     $('loading').style.display='none';
     loadAll().catch(()=>{});
     setupRealtime();
+    startHeartbeat();
   } else {
     $('loading').style.display='flex';
     let _retries=0;
