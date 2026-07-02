@@ -1100,7 +1100,7 @@ function renderLanc(){
     const c=cartaoById(l.cartao_id);
     const isRec=l.tipo==='receita';
     h+=`<tr>
-      <td data-label="Descrição"><b>${l.descricao}</b>${l.recorrente?'<span class="rec">↻ fixo</span>':''}${l.parcela_total>1?`<span class="rec">${l.parcela_atual}/${l.parcela_total}</span>`:''}${l.observacao?`<div style="font-size:12px;color:var(--mut2)">${l.observacao}</div>`:''}</td>
+      <td data-label="Descrição"><b>${l.descricao}</b>${l.recorrente?'<span class="rec">↻ fixo</span>':''}${l.parcela_total>1?`<span class="rec">${l.parcela_atual}/${l.parcela_total}</span>`:''}${!isRec&&l.forma_pagamento==='cartao'?'<span class="rec" style="color:var(--acc2)">💳 cartão</span>':''}${l.observacao?`<div style="font-size:12px;color:var(--mut2)">${l.observacao}</div>`:''}</td>
       <td data-label="Categoria"><span class="tag cat">${l.categoria}</span></td>
       <td data-label="Cartão">${c?`<span class="chip-cartao"><span class="d" style="background:${c.cor}"></span>${c.nome}</span>`:'<span style="color:var(--mut2)">—</span>'}</td>
       <td data-label="Tipo">${isRec?'<span style="color:var(--green)">⬆ Receita</span>':'<span style="color:var(--red)">⬇ Despesa</span>'}</td>
