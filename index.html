@@ -1895,6 +1895,7 @@ async function saveLanc(id){
     tipo:document.querySelector('input[name=tipo]:checked').value,
     categoria:$('f_cat').value.trim()||'Geral',
     cartao_id:$('f_cartao').value||null,
+    forma_pagamento:document.querySelector('input[name=forma]:checked').value,
     status:$('f_status').value,
     parcela_atual:parseInt($('f_pa').value)||1,
     parcela_total:parseInt($('f_pt').value)||1,
