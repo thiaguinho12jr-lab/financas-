@@ -1911,7 +1911,7 @@ async function saveLanc(id){
       // mas preserva a competência e o status (pago/pendente) de cada mês.
       const dataFixo={descricao:data.descricao,valor:data.valor,tipo:data.tipo,categoria:data.categoria,
         cartao_id:data.cartao_id,parcela_atual:data.parcela_atual,parcela_total:data.parcela_total,
-        recorrente:data.recorrente,observacao:data.observacao};
+        recorrente:data.recorrente,observacao:data.observacao,forma_pagamento:data.forma_pagamento};
       await sb.from('fin_lancamentos').update(dataFixo)
         .eq('recorrente',true).eq('tipo',orig.tipo).eq('descricao',orig.descricao).eq('categoria',orig.categoria);
       // o status deste mês específico ainda pode ser alterado pelo usuário no formulário
