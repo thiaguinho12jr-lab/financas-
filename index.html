@@ -616,8 +616,15 @@ async function loadAll(){
     $('syncTxt').innerHTML='🔴 sem conexão';
     // se o erro for de autenticação (token expirado), tenta renovar a sessão
     const _err=c.error||l.error||r.error||e.error;
-    if(_err&&(_err.code==='PGRST301'||/jwt|token|exp/i.test(_err.message||''))){
-      try{await sb.auth.refreshSession();}catch(_){}
+    if(_err&&(_err.code==='PGRST301'||_err.code==='PGRST303'||/jwt|token|exp/i.test(_err.message||''))){
+      const {error:_refErr}=await sb.auth.refreshSession().catch(e=>({error:e}));
+      if(_refErr){
+        // refresh também falhou (sessão morta) — para de bater na API e manda pro login
+        if(_hbTimer){clearInterval(_hbTimer);_hbTimer=null;}
+        await sb.auth.signOut().catch(()=>{});
+        $('syncTxt').innerHTML='🔴 sessão expirada';
+        showLogin();
+      }
     }
     return false;
   }
