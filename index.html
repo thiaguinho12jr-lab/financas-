@@ -856,7 +856,7 @@ function render(){
 // Simula a quitação das dívidas mês a mês.
 function projetar(){
   const cards=state.cartoes.map(c=>({nome:c.nome,saldo:+c.saldo_devedor,pay:+c.pagamento_mensal||0}));
-  const loans=state.emprestimos.map(e=>({rem:Math.max(0,e.parcelas_total-e.parcelas_pagas),val:+e.parcela_valor}));
+  const loans=state.emprestimos.map(e=>({rem:Math.max(0,e.parcelas_total-parcelasPagasCalc(e)),val:+e.parcela_valor}));
   const meses=[]; let semConfig=false;
   const m=new Date(); m.setDate(1);
   for(let i=0;i<72;i++){
