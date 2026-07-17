@@ -1026,6 +1026,8 @@ function renderDash(){
       <div class="it"><div class="l">⚖️ Saldo</div><div class="v">${brl(saldo)}</div></div>
     </div></div>`;
 
+  renderFinancialSummary();
+
   // 3 KPIs simples
   $('kpis').innerHTML=`
     ${kpi('green','✅','Já pago',brl(pago),'neste mês')}
