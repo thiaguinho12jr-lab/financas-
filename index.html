@@ -1177,10 +1177,8 @@ function renderSugestoes(){
   const comp=compStr(base);
   const todos=state.lancamentos;
   const lm=todos.filter(l=>l.competencia===comp);
-  const receitas=lm.filter(l=>l.tipo==='receita').reduce((s,l)=>s+ +l.valor,0);
-  const despesas=lm.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+ +l.valor,0);
+  const {totDesp:despesas,totRec:receitas,saldo}=totaisMes(comp);
   const pendentes=lm.filter(l=>l.status==='pendente'&&l.tipo==='despesa').reduce((s,l)=>s+ +l.valor,0);
-  const saldo=receitas-despesas;
   const pctComprometido=receitas>0?despesas/receitas*100:100;
 
   // agrupa por categoria
