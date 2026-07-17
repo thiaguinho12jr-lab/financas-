@@ -654,7 +654,7 @@ async function loadAll(){
   render();
   return true;
 }
-let planosOk=true, eventosOk=true, dividasOk=false;
+let planosOk=true, eventosOk=true, dividasOk=false, configOk=false;
 let _reconTimer=null, _rtChannel=null;
 function setupRealtime(){
   if(_rtChannel){try{sb.removeChannel(_rtChannel);}catch(e){} _rtChannel=null;}
@@ -667,6 +667,7 @@ function setupRealtime(){
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_eventos'},loadAll)
    .on('postgres_changes',{event:'*',schema:'public',table:'fin_meses_encerrados'},loadAll);
   if(dividasOk) ch=ch.on('postgres_changes',{event:'*',schema:'public',table:'fin_cartao_dividas'},loadAll);
+  if(configOk) ch=ch.on('postgres_changes',{event:'*',schema:'public',table:'fin_config'},loadAll);
   _rtChannel=ch.subscribe(s=>{
       if(s==='SUBSCRIBED'){
         clearTimeout(_reconTimer); _reconTimer=null;
