@@ -585,7 +585,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-let state={cartoes:[],lancamentos:[],areceber:[],emprestimos:[],planos:[],eventos:[],dividas:[],mesesEncerrados:[]};
+let state={cartoes:[],lancamentos:[],areceber:[],emprestimos:[],planos:[],eventos:[],dividas:[],mesesEncerrados:[],config:{saldo_contas:0,investimentos:0,dia_salario:8}};
 let cur=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),1);})(); // sempre inicia no mês atual
 const CACHE_KEY='fin_cache_v1';
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({t:Date.now(),s:state}));}catch(e){}}
