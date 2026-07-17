@@ -989,7 +989,6 @@ function renderDash(){
   const falta=totDesp-pago;
   const pctPago=totDesp>0?pago/totDesp*100:100;
   const aReceber=state.areceber.filter(r=>r.status==='pendente').reduce((s,r)=>s+ +r.valor,0);
-  const saldo=totRec-totDesp;
 
   const hoje=new Date();
   const isPast=cur.getFullYear()<hoje.getFullYear()||(cur.getFullYear()===hoje.getFullYear()&&cur.getMonth()<hoje.getMonth());
