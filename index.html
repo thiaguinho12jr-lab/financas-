@@ -2151,7 +2151,11 @@ function openEmprestimo(e){
        <div class="field"><label>Valor da parcela</label><input id="e_pv" type="number" step="0.01" value="${e.parcela_valor||0}"></div>
        <div class="field"><label>Total de parcelas</label><input id="e_pt" type="number" value="${e.parcelas_total||0}"></div>
      </div>
-     <div class="field"><label>Parcelas já pagas</label><input id="e_pp" type="number" value="${e.parcelas_pagas||0}"></div>
+     <div class="row2">
+       <div class="field"><label>Data da 1ª parcela</label><input id="e_dpp" type="date" value="${e.data_primeira_parcela||''}">
+         <div style="font-size:11px;color:var(--mut2);margin-top:4px">Preenchendo isso, o app calcula sozinho quantas parcelas já foram descontadas do salário — não precisa mais clicar em "Registrar parcela paga".</div></div>
+       <div class="field"><label>Parcelas já pagas ${e.data_primeira_parcela?'(ignorado — automático)':''}</label><input id="e_pp" type="number" value="${e.parcelas_pagas||0}"></div>
+     </div>
      <div class="field"><label>Observação</label><input id="e_obs" value="${e.observacao||''}"></div>
    </div>
    <div class="mf"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveEmprestimo('${e.id||''}')">Salvar</button></div>`);
@@ -2160,7 +2164,7 @@ async function saveEmprestimo(id){
   const data={banco:$('e_banco').value.trim(),descricao:$('e_desc').value.trim()||null,
     valor_liberado:parseFloat($('e_lib').value)||0,valor_total:parseFloat($('e_tot').value)||0,
     parcela_valor:parseFloat($('e_pv').value)||0,parcelas_total:parseInt($('e_pt').value)||0,
-    parcelas_pagas:parseInt($('e_pp').value)||0,observacao:$('e_obs').value.trim()||null};
+    parcelas_pagas:parseInt($('e_pp').value)||0,data_primeira_parcela:$('e_dpp').value||null,observacao:$('e_obs').value.trim()||null};
   if(!data.banco){toast('Informe o banco');return;}
   if(id){await sb.from('fin_emprestimos').update(data).eq('id',id);toast('Atualizado');}
   else{await sb.from('fin_emprestimos').insert(data);toast('Adicionado');}
