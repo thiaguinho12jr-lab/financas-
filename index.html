@@ -984,11 +984,7 @@ function irMes(y,m){cur=new Date(+y,+m,1);setTab('lanc');render();}
 function addExtra(y,m){cur=new Date(+y,+m,1);render();openLanc();}
 
 function renderDash(){
-  const lm=lancMes();
-  const despesas=lm.filter(l=>l.tipo==='despesa');
-  const receitas=lm.filter(l=>l.tipo==='receita');
-  const totDesp=despesas.reduce((s,l)=>s+ +l.valor,0);
-  const totRec=receitas.reduce((s,l)=>s+ +l.valor,0);
+  const {despesas,receitas,totDesp,totRec,saldo}=totaisMes(compStr(cur));
   const pago=despesas.filter(l=>l.status==='pago').reduce((s,l)=>s+ +l.valor,0);
   const falta=totDesp-pago;
   const pctPago=totDesp>0?pago/totDesp*100:100;
